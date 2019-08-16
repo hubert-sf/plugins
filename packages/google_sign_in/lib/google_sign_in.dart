@@ -36,6 +36,7 @@ class GoogleSignInAccount implements GoogleIdentity {
         email = data['email'],
         id = data['id'],
         photoUrl = data['photoUrl'],
+        serverAuthCode = data['serverAuthCode'],
         _idToken = data['idToken'] {
     assert(id != null);
   }
@@ -62,6 +63,7 @@ class GoogleSignInAccount implements GoogleIdentity {
 
   final String _idToken;
   final GoogleSignIn _googleSignIn;
+  final String serverAuthCode;
 
   /// Retrieve [GoogleSignInAuthentication] for this account.
   ///
@@ -157,7 +159,9 @@ class GoogleSignIn {
   /// The [hostedDomain] argument specifies a hosted domain restriction. By
   /// setting this, sign in will be restricted to accounts of the user in the
   /// specified domain. By default, the list of accounts will not be restricted.
-  GoogleSignIn({this.signInOption, this.scopes, this.hostedDomain});
+  ///
+  /// The [requestServerAuthCode] argument Determines if server auth code should be requested
+  GoogleSignIn({this.signInOption, this.scopes, this.hostedDomain, this.requestServerAuthCode = false});
 
   /// Factory for creating default sign in user experience.
   factory GoogleSignIn.standard({List<String> scopes, String hostedDomain}) {
@@ -201,6 +205,9 @@ class GoogleSignIn {
   /// Domain to restrict sign-in to.
   final String hostedDomain;
 
+  /// Determines if server auth code should be requested
+  final bool requestServerAuthCode;
+
   StreamController<GoogleSignInAccount> _currentUserController =
       StreamController<GoogleSignInAccount>.broadcast();
 
@@ -235,6 +242,7 @@ class GoogleSignIn {
         'signInOption': (signInOption ?? SignInOption.standard).toString(),
         'scopes': scopes ?? <String>[],
         'hostedDomain': hostedDomain,
+        'requestServerAuthCode': requestServerAuthCode
       })
         ..catchError((dynamic _) {
           // Invalidate initialization if it errored out.
