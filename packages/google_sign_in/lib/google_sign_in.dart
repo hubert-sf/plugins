@@ -36,6 +36,7 @@ class GoogleSignInAccount implements GoogleIdentity {
         email = data['email'],
         id = data['id'],
         photoUrl = data['photoUrl'],
+        serverAuthCode = data['serverAuthCode'],
         _idToken = data['idToken'] {
     assert(id != null);
   }
@@ -62,6 +63,7 @@ class GoogleSignInAccount implements GoogleIdentity {
 
   final String _idToken;
   final GoogleSignIn _googleSignIn;
+  final String serverAuthCode;
 
   /// Retrieve [GoogleSignInAuthentication] for this account.
   ///
@@ -79,7 +81,7 @@ class GoogleSignInAccount implements GoogleIdentity {
     }
 
     final Map<String, dynamic> response =
-        await GoogleSignIn.channel.invokeMapMethod<String, dynamic>(
+    await GoogleSignIn.channel.invokeMapMethod<String, dynamic>(
       'getTokens',
       <String, dynamic>{
         'email': email,
@@ -157,7 +159,9 @@ class GoogleSignIn {
   /// The [hostedDomain] argument specifies a hosted domain restriction. By
   /// setting this, sign in will be restricted to accounts of the user in the
   /// specified domain. By default, the list of accounts will not be restricted.
-  GoogleSignIn({this.signInOption, this.scopes, this.hostedDomain});
+  ///
+  /// The [serverClientId] argument Determines if server auth code should be requested
+  GoogleSignIn({this.signInOption, this.scopes, this.hostedDomain, this.serverClientId = null});
 
   /// Factory for creating default sign in user experience.
   factory GoogleSignIn.standard({List<String> scopes, String hostedDomain}) {
@@ -189,7 +193,7 @@ class GoogleSignIn {
   /// The [MethodChannel] over which this class communicates.
   @visibleForTesting
   static const MethodChannel channel =
-      MethodChannel('plugins.flutter.io/google_sign_in');
+  MethodChannel('plugins.flutter.io/google_sign_in');
 
   /// Option to determine the sign in user experience. [SignInOption.games] must
   /// not be used on iOS.
@@ -201,8 +205,11 @@ class GoogleSignIn {
   /// Domain to restrict sign-in to.
   final String hostedDomain;
 
+  /// Determines if server auth code should be requested
+  final String serverClientId;
+
   StreamController<GoogleSignInAccount> _currentUserController =
-      StreamController<GoogleSignInAccount>.broadcast();
+  StreamController<GoogleSignInAccount>.broadcast();
 
   /// Subscribe to this stream to be notified when the current user changes.
   Stream<GoogleSignInAccount> get onCurrentUserChanged =>
@@ -215,7 +222,7 @@ class GoogleSignIn {
     await _ensureInitialized();
 
     final Map<String, dynamic> response =
-        await channel.invokeMapMethod<String, dynamic>(method);
+    await channel.invokeMapMethod<String, dynamic>(method);
     return _setCurrentUser(response != null && response.isNotEmpty
         ? GoogleSignInAccount._(this, response)
         : null);
@@ -235,6 +242,7 @@ class GoogleSignIn {
         'signInOption': (signInOption ?? SignInOption.standard).toString(),
         'scopes': scopes ?? <String>[],
         'hostedDomain': hostedDomain,
+        'serverClientId': serverClientId
       })
         ..catchError((dynamic _) {
           // Invalidate initialization if it errored out.
@@ -340,7 +348,7 @@ class _MethodCompleter {
 
   final String method;
   final Completer<GoogleSignInAccount> _completer =
-      Completer<GoogleSignInAccount>();
+  Completer<GoogleSignInAccount>();
 
   Future<void> complete(FutureOr<GoogleSignInAccount> value) async {
     if (value is Future<GoogleSignInAccount>) {
