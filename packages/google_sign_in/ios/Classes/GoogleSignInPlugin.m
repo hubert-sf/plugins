@@ -68,10 +68,11 @@ static FlutterError *getFlutterError(NSError *error) {
                                  message:@"Games sign in is not supported on iOS"
                                  details:nil]);
     } else {
-      NSString *path = [[NSBundle mainBundle] pathForResource:@"GoogleService-Info"
-                                                       ofType:@"plist"];
-      if (path) {
-        NSMutableDictionary *plist = [[NSMutableDictionary alloc] initWithContentsOfFile:path];
+        NSString *fileName = [[NSBundle mainBundle] infoDictionary][@"FIREBASE_PLIST_FILE_KEY"];
+        NSString *filePath = [[NSBundle mainBundle] pathForResource:fileName ofType:@"plist"];
+        
+      if (filePath) {
+        NSMutableDictionary *plist = [[NSMutableDictionary alloc] initWithContentsOfFile:filePath];
         [GIDSignIn sharedInstance].clientID = plist[kClientIdKey];
         [GIDSignIn sharedInstance].scopes = call.arguments[@"scopes"];
         [GIDSignIn sharedInstance].hostedDomain = call.arguments[@"hostedDomain"];
@@ -173,12 +174,17 @@ static FlutterError *getFlutterError(NSError *error) {
       // size
       photoUrl = [user.profile imageURLWithDimension:1337];
     }
+
+    NSString *serverAuthCode;
+    if (![user.serverAuthCode isKindOfClass:[NSNull class]] && user.serverAuthCode != nil) {
+        serverAuthCode = user.serverAuthCode;
+    }
     [self respondWithAccount:@{
       @"displayName" : user.profile.name ?: [NSNull null],
       @"email" : user.profile.email ?: [NSNull null],
       @"id" : user.userID ?: [NSNull null],
       @"photoUrl" : [photoUrl absoluteString] ?: [NSNull null],
-      @"serverAuthCode" : user.serverAuthCode ?: [NSNull null],
+      @"serverAuthCode" : serverAuthCode ?: [NSNull null],
     }
                        error:nil];
   }
